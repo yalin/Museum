@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>Museum simulation in WebGL</title>
+    <link rel="stylesheet" href="./css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700,400italic">
+    <link rel="stylesheet" href="./css/styles.min.css">
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 vPosition;
+        //attribute vec4 vColor;
+        attribute vec2 vTexCoord;
+        attribute vec4 vNormal;
+
+        varying vec4 aColor;
+        varying vec4 fColor;
+        varying vec2 fTexCoord;
+
+        uniform mat4 transformationMatrix;
+        uniform mat4 projectionMatrix;
+        uniform mat4 lookatMatrix;
+
+        // inside room light
+        uniform vec4 uAmbientProductI, uDiffuseProductI, uSpecularProductI;
+        uniform vec4 uLightPositionI;
+        uniform float uShininessI;
+
+        // left hall light
+        uniform vec4 uAmbientProductL, uDiffuseProductL, uSpecularProductL;
+        uniform vec4 uLightPositionL;
+        uniform float uShininessL;
+
+        void main()
+        {
+            // INSIDE
+            vec3 posI = (transformationMatrix * vPosition).xyz;
+
+            //fixed light postion
+            vec3 lightI = uLightPositionI.xyz;
+            vec3 LI = normalize(lightI - posI);
+            vec3 EI = -normalize(posI);
+            vec3 HI = normalize(LI + EI);
+            vec3 NI = normalize((transformationMatrix * vNormal).xyz);
+
+            // Compute terms in the illumination equation
+            vec4 ambientI = uAmbientProductI;
+
+            float KdI = max( dot(LI, NI), 0.0 );
+            vec4  diffuseI = KdI * uDiffuseProductI;
+
+            float KsI = pow( max(dot(NI, HI), 0.0), uShininessI );
+            vec4  specularI = KsI * uSpecularProductI;
+
+            if( dot(LI, NI) < 0.0 ) {
+                specularI = vec4(0.0, 0.0, 0.0, 1.0);
+            }
+
+            // LEFTHALL
+            vec3 posL = (transformationMatrix * vPosition).xyz;
+
+            vec3 lightL = uLightPositionL.xyz;
+            vec3 LL = normalize(lightL - posL);
+            vec3 EL = -normalize(posL);
+            vec3 HL = normalize(LL + EL);
+            vec3 NL = normalize((transformationMatrix * vNormal).xyz);
+
+            // Compute terms in the illumination equation
+            vec4 ambientL = uAmbientProductL;
+
+            float KdL = max( dot(LL, NL), 0.0 );
+            vec4  diffuseL = KdL * uDiffuseProductL;
+
+            float KsL = pow( max(dot(NL, HL), 0.0), uShininessL );
+            vec4  specularL = KsL * uSpecularProductL;
+
+            if( dot(LL, NL) < 0.0 ) {
+                specularI = vec4(0.0, 0.0, 0.0, 1.0);
+            }
+
+            aColor = ( ambientI + diffuseI + specularI + ambientL + diffuseL + specularL );
+            aColor.a = 1.0;
+            fColor =  aColor;
+
+            fTexCoord = vTexCoord;
+            gl_Position = projectionMatrix * lookatMatrix * transformationMatrix * vPosition;
+        }
+    </script>
+
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+
+        varying vec4 fColor;
+        varying vec2 fTexCoord;
+
+        uniform sampler2D textureSample;
+
+        void
+        main(){
+            gl_FragColor = fColor * texture2D(textureSample, fTexCoord);
+        }
+    </script>
+    <script type="text/javascript" src="./Common/initShaders.js"></script>
+    <script type="text/javascript" src="./Common/MV.js"></script>
+    <script type="text/javascript" src="./Common/webgl-utils.js"></script>
+    <script type="text/javascript" src="./js/wall.js"></script>
+    <script type="text/javascript" src="./js/colors.js"></script>
+    <script type="text/javascript" src="./js/table.js"></script>
+    <script type="text/javascript" src="./js/statue.js"></script>
+    <script type="text/javascript" src="./js/book.js"></script>
+    <script type="text/javascript" src="./js/shapes.js"></script>
+    <script type="text/javascript" src="./Museum.js"></script>
+</head>
+
+<body>
+    <!-- Start: Navigation Clean -->
+    <nav class="navbar navbar-light navbar-expand-md navigation-clean">
+        <div class="container"><a class="navbar-brand" href="./index.html">
+                <h2>Museum</h2>
+            </a>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="row">
+            <div class="col">
+                <canvas id="gl-canvas" width="900" height="500">
+                    Oops ... your browser doesn't support the HTML5 canvas element
+                </canvas>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>
